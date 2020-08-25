@@ -1,0 +1,547 @@
+from tkinter import *
+import math
+
+class SciCalculator:
+    def __init__(self):
+        
+        self.hypMode = False 
+        self.F_EMode = False 
+        self.angleModes = ("DEG", "RAD", "GRAD") 
+        self.angleModeIdx = 0 
+        self.angleMode = self.angleModes[self.angleModeIdx]
+
+        self.accumulator = 0  
+        self.operator = None  
+        self.lastOperand = 0 
+        self.isResult = False 
+        self.otherOpt = None 
+        self.addInput = True 
+        self.expMode = False 
+        self.openedBracket = 0 
+        
+        window = Tk()
+        window.title("Scientific Calculator")
+    
+        self.toplbl = Label(window, anchor=SE, text="", height=2, bg="#f5f5f5", fg="grey",
+                         font="Helvetica 10")
+        self.toplbl.pack(fill=BOTH)
+        self.input = Label(window, anchor=SE, text="0", height=1, bg="#f5f5f5",
+                         font="Helvetica 18")
+        self.input.pack(fill=BOTH)
+
+        self.frame = Frame(window)
+        self.frame.pack()
+
+        self.angleState = Button(self.frame, text="DEG", relief=FLAT, font="Courier 10 bold", command=self.processAngleStateBtn)
+        self.hypState = Button(self.frame, text="HYP", relief=FLAT, font="Courier 10 bold", command=self.processHypStateBtn)
+        self.expState = Button(self.frame, text="F-E", relief=FLAT, font="Courier 10 bold", command=self.processExpStateBtn)
+        self.defaultColor = self.hypState["bg"]
+        
+        self.angleState.grid(row=0, column=1)
+        self.hypState.grid(row=0, column=2)
+        self.expState.grid(row=0, column=3)
+        
+        btnContents = (
+                       (u"x\u00b2", u"x\u207f", "sin", "cos", "tan"),
+                       (u"\u221a", u"10\u207f", "log", "Exp", "Mod"),
+                       (u"\u2191", "CE", "C", u"\u232B", u"\u00f7"),
+                       (u"\u03C0", "7", "8", "9", u"\u00d7"),
+                       ("n!", "4", "5", "6", "-"),
+                       (u"\u00b1", "1", "2", "3", "+"),
+                       ("(", ")", "0", ".", "=")
+                       )
+
+        commands = (
+                (self.processSqrBtn, self.processPowBtn, self.processSinBtn,self.processCosBtn, self.processTanBtn),
+                (self.processSqrtBtn, self.processDecExpBtn,self.processLogBtn, self.processExpBtn, self.processModBtn),
+                (self.processSqrBtn, self.processClrBtn, self.processClrAllBtn,self.processDelBtn, self.processDivBtn),
+                (self.processPIBtn, self.processBtn7, self.processBtn8, self.processBtn9, self.processMulBtn),
+                (self.processFactBtn, self.processBtn4, self.processBtn5, self.processBtn6, self.processSubBtn),
+                (self.processSignBtn, self.processBtn1, self.processBtn2, self.processBtn3, self.processAddBtn),
+                (self.processOpenParenBtn, self.processCloseParenBtn, self.processBtn0, self.processDotBtn, self.processEqlBtn)
+            )
+
+        for i in range(0, 7):
+            for j in range(0, 5):
+                self.createButton(btnContents[i][j], i + 1, j + 1, command=commands[i][j])
+
+        window.mainloop()
+    
+    def createButton(self, text, row, col, command=None):
+        btn = Button(self.frame, text=text, bg="white", width=5, relief=GROOVE, font="Segoe 12", command=command)
+        btn.grid(row=row, column=col, padx=4, pady=5)
+        if text is ".":
+            btn["font"] = "Segoe 12 bold"
+        return btn
+    
+    
+    def processAngleStateBtn(self):
+        if self.angleModeIdx < len(self.angleModes) - 1: self.angleModeIdx += 1
+        else: self.angleModeIdx = 0
+        self.angleMode = self.angleModes[self.angleModeIdx]
+        self.angleState["text"] = self.angleMode
+            
+    def processExpStateBtn(self):
+        self.F_EMode = not self.F_EMode
+        if self.F_EMode:
+            self.expState["bg"] = "blue"
+        else:
+            self.expState["bg"] = self.defaultColor
+            
+
+    def processHypStateBtn(self):
+        self.hypMode = not self.hypMode
+        if self.hypMode:
+            self.hypState["bg"] = "blue"
+            self.createButton("sinh", 1, 3, command=self.processSinBtn)
+            self.createButton("cosh", 1, 4, command=self.processCosBtn)
+            self.createButton("tanh", 1, 5, command=self.processTanBtn)
+        else:
+            self.hypState["bg"] = self.defaultColor
+            self.createButton("sin", 1, 3, command=self.processSinBtn)
+            self.createButton("cos", 1, 4, command=self.processCosBtn)
+            self.createButton("tan", 1, 5, command=self.processTanBtn)
+    #methods to write operands on input label
+    def processBtn1(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "1"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "1"
+            else:
+                self.input["text"] += "1"
+                
+    def processBtn2(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "2"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "2"
+            else:
+                self.input["text"] += "2"
+
+    def processBtn3(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "3"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "3"
+            else:
+                self.input["text"] += "3"
+
+    def processBtn4(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "4"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "4"
+            else:
+                self.input["text"] += "4"
+
+    def processBtn5(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "5"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "5"
+            else:
+                self.input["text"] += "5"
+
+    def processBtn6(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "6"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "6"
+            else:
+                self.input["text"] += "6"
+
+    def processBtn7(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "7"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "7"
+            else:
+                self.input["text"] += "7"
+
+    def processBtn8(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "8"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "8"
+            else:
+                self.input["text"] += "8"
+
+    def processBtn9(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "9"
+            self.expMode = False
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] == "0":
+                self.input["text"] = "9"
+            else:
+                self.input["text"] += "9"
+
+    def processBtn0(self):
+        if self.expMode:
+            self.input["text"] = self.input["text"][:-1] + "0"
+            return
+        if self.isResult:
+            self.input["text"] = ""
+            self.isResult = False
+        if len(self.input["text"]) < 12:
+            if self.input["text"] != "0":
+                self.input["text"] += "0"
+                
+    def processOpenParenBtn(self):
+        self.openedBracket += 1
+        self.toplbl["text"] += " ( "
+        
+    def processCloseParenBtn(self):
+        if self.openedBracket > 0:
+            self.toplbl["text"] += self.input["text"] + " )"
+            self.openedBracket -= 1
+            self.evaluate(eval(self.input["text"]))
+            self.input["text"] = str(self.accumulator)
+            self.operator = None
+            self.isResult = True
+            self.addInput = False
+            
+    def processDotBtn(self):
+        if len(self.input["text"]) < 12:
+            if not "." in self.input["text"]:
+                self.input["text"] += "."
+
+    #operation methods
+    def evaluate(self, op):
+        if self.otherOpt:
+            print(self.angleMode)
+            if self.otherOpt == 1:
+                value = self.lastOperand ** op
+            elif self.otherOpt == 5:
+                value = (10 ** self.lastOperand)
+            elif self.otherOpt == 6:
+                value = (math.log10(self.lastOperand))
+            elif self.otherOpt == 7:
+                value = (math.factorial(self.lastOperand))
+            self.otherOpt = None
+            self.evaluate(value)
+            return 0
+        if self.operator == "+": self.accumulator += op
+        elif self.operator == "-": self.accumulator -= op
+        elif self.operator == u"\u00f7": self.accumulator /= op 
+        elif self.operator == u"\u00d7": self.accumulator *= op
+        elif self.operator == "Mod": self.accumulator %= op
+        else: self.accumulator = op
+        
+    def processDelBtn(self):
+        if self.input["text"] != "0" and len(self.input["text"]) > 1:
+            self.input["text"] = self.input["text"][0:-1]
+        else:
+            self.input["text"] = "0"
+
+    def processSignBtn(self):
+        val = eval(self.input["text"])
+        self.input["text"] = str(val * -1)
+
+    def processEqlBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        if not self.F_EMode:
+            self.input["text"] = str(self.accumulator)
+        else:
+            self.input["text"] = "%.2e" % (self.accumulator)
+        self.toplbl["text"] = ""
+        self.operator = None
+        self.isResult = True
+
+    def processClrBtn(self):
+        self.input["text"] = "0"
+        
+    def processClrAllBtn(self):
+        self.accumulator = 0
+        self.operator = None
+        self.input["text"] = "0"
+        self.toplbl["text"] = ""
+        
+    def processAddBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:]
+        self.operator = "+"
+        if not self.otherOpt and self.addInput:
+            if not self.F_EMode:
+                self.toplbl["text"] += "%s + " % (eval(self.input["text"]))
+            else:
+                self.toplbl["text"] += "%.2e + " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += " + "
+            self.addInput = True
+        if len(str(self.accumulator)) > 21 or self.F_EMode:
+            self.input["text"] = "{:,.2e}".format(self.accumulator)
+        else:
+            self.input["text"] = str(self.accumulator)
+        self.isResult = True
+        self.lastOperand = eval(self.input["text"])
+        self.expMode = False
+        
+    def processModBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:]
+        self.operator = "Mod"
+        if not self.otherOpt and self.addInput:
+            if not self.F_EMode:
+                self.toplbl["text"] += "%s Mod " % (eval(self.input["text"]))
+            else:
+                self.toplbl["text"] += "%.2e Mod " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += " Mod "
+            self.addInput = True
+        if len(str(self.accumulator)) > 21 or self.F_EMode:
+            self.input["text"] = "{:,.2e}".format(self.accumulator)
+        else:
+            self.input["text"] = str(self.accumulator)
+        print(self.accumulator, self.operator)
+        self.isResult = True
+        self.lastOperand = eval(self.input["text"])
+        self.expMode = False
+        
+    def processPowBtn(self):
+        if not self.F_EMode:
+            self.toplbl["text"] += " %s ^ " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += " %.2e ^ " % (eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:]
+        print(self.accumulator, self.operator)
+        self.isResult = True
+        self.otherOpt = 1
+        self.lastOperand = eval(self.input["text"])
+        self.expMode = False
+        
+    def processSubBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:]
+        self.operator = "-"
+        if not self.otherOpt and self.addInput:
+            if not self.F_EMode:
+                self.toplbl["text"] += "%s - " % (eval(self.input["text"]))
+            else:
+                self.toplbl["text"] += "%.2e - " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += " - "
+            self.addInput = True
+        if len(str(self.accumulator)) > 21 or self.F_EMode:
+            self.input["text"] = "{:,.2e}".format(self.accumulator)
+        else:
+            self.input["text"] = str(self.accumulator)
+        print(self.accumulator, self.operator)
+        self.isResult = True
+        self.lastOperand = eval(self.input["text"])
+        self.expMode = False
+        
+    def processDivBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:]
+            print(text)
+        self.operator = u"\u00f7"
+        if not self.otherOpt and self.addInput:
+            if not self.F_EMode:
+                self.toplbl["text"] += u" %s \u00f7 " % (eval(self.input["text"]))
+            else:
+                self.toplbl["text"] += u" %.2e \u00f7 " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += u" \u00f7 "
+            self.addInput = True
+        if len(str(self.accumulator)) > 21 or self.F_EMode:
+            self.input["text"] = "{:,.2e}".format(self.accumulator)
+        else:
+            self.input["text"] = str(self.accumulator)                   
+        print(self.accumulator, self.operator)
+        self.isResult = True
+        self.lastOperand = self.input["text"]
+        self.expMode = False
+            
+    def processMulBtn(self):
+        self.evaluate(eval(self.input["text"]))
+        text = self.toplbl["text"]
+        if len(text) > 53:
+            self.toplbl["text"] = self.toplbl["text"][len(text) - 53:-1]
+        self.operator = u"\u00d7"
+        if not self.otherOpt and self.addInput:
+            if not self.F_EMode:
+                self.toplbl["text"] += u" %s \u00d7 " % (eval(self.input["text"]))
+            else:
+                self.toplbl["text"] += u" %.2e \u00d7 " % (eval(self.input["text"]))
+        else:
+            self.toplbl["text"] += u" \u00d7 "
+            self.addInput = True
+        if len(str(self.accumulator)) > 21 or self.F_EMode:
+            self.input["text"] = "{:,.2e}".format(self.accumulator)
+        else:
+            self.input["text"] = str(self.accumulator)
+        print(self.accumulator, self.operator)
+        self.isResult = True
+        self.lastOperand = eval(self.input["text"])
+        self.expMode = False
+        
+    def processSqrBtn(self):
+        sqr = eval(self.input["text"]) ** 2
+        if not self.F_EMode:
+            self.input["text"] = str(sqr)
+        else:
+            self.input["text"] = "%.2e" % sqr
+            
+    def processSqrtBtn(self):
+        sqrt = eval(self.input["text"]) ** 0.5
+        if not self.F_EMode:
+            self.input["text"] = str(sqrt)
+        else:
+            self.input["text"] = "%.2e" % sqrt
+
+    def processSinBtn(self):
+        self.lastOperand = eval(self.input["text"])
+        print(self.hypMode)
+        if not self.hypMode:
+            self.toplbl["text"] += " sin(%s) " % (eval(self.input["text"]))
+            if self.angleMode == "DEG":
+                self.input["text"] = str(math.sin(math.radians(self.lastOperand)))
+            elif self.angleMode == "RAD":
+                self.input["text"] = str(math.sin(self.lastOperand))
+            elif self.angleMode == "GRAD":
+                self.input["text"] = str(math.sin(self.lastOperand))
+        else:
+            self.toplbl["text"] += " sinh(%s) " % (eval(self.input["text"]))
+            self.input["text"] = str(math.sinh(self.lastOperand))
+            
+        self.isResult = True
+        self.addInput = False
+
+    def processCosBtn(self):
+        self.lastOperand = eval(self.input["text"])
+
+        if not self.hypMode:
+            self.toplbl["text"] += " cos(%s) " % (eval(self.input["text"]))
+            if self.angleMode == "DEG":
+                self.input["text"] = str(math.cos(math.radians(self.lastOperand)))
+            elif self.angleMode == "RAD":
+                self.input["text"] = str(math.cos(self.lastOperand))
+            elif self.angleMode == "GRAD":
+                self.input["text"] = str(math.cos(self.lastOperand))
+        else:
+            self.toplbl["text"] += " cosh(%s) " % (eval(self.input["text"]))
+            self.input["text"] = str(math.cosh(self.lastOperand))
+        
+        self.isResult = True
+        self.addInput = False
+
+    def processTanBtn(self):
+        self.lastOperand = eval(self.input["text"])
+        
+        if not self.hypMode:
+            self.toplbl["text"] += " tan(%s) " % (self.input["text"])
+            if self.angleMode == "DEG":
+                self.input["text"] = str(math.tan(math.radians(self.lastOperand)))
+            elif self.angleMode == "RAD":
+                self.input["text"] = str(math.tan(self.lastOperand))
+            elif self.angleMode == "GRAD":
+                self.input["text"] = str(math.tan(self.lastOperand))
+        else:
+            self.toplbl["text"] += " tanh(%s) " % (self.input["text"])
+            self.input["text"] = str(math.tanh(self.lastOperand))
+        self.isResult = True
+        self.addInput = False
+
+    def processDecExpBtn(self):
+        self.toplbl["text"] += " 10^(%s) " % (self.input["text"])
+        print(self.accumulator, self.operator)
+        self.otherOpt = 5
+        self.lastOperand = eval(self.input["text"])
+        self.input["text"] = str(10 ** self.lastOperand)
+        self.isResult = True
+        self.addInput = False
+        
+    def processLogBtn(self):
+        self.toplbl["text"] += " log(%s) " % (self.input["text"])
+        print(self.accumulator, self.operator)
+        self.otherOpt = 6
+        self.lastOperand = eval(self.input["text"])
+        self.input["text"] = str(math.log10(self.lastOperand))
+        self.isResult = True
+        self.addInput = False
+        self.expMode = False
+        
+    def processPIBtn(self):
+        self.input["text"] = str(math.pi)
+
+    def processFactBtn(self):
+        self.toplbl["text"] += " fact(%s) " % (self.input["text"])
+        print(self.accumulator, self.operator)
+        self.otherOpt = 7
+        self.lastOperand = eval(self.input["text"])
+        self.input["text"] = str(math.factorial(self.lastOperand))
+        self.isResult = True
+        self.addInput = False
+        self.expMode = False
+
+    def processExpBtn(self):
+        if "." in self.input["text"]:
+            self.input["text"] += "e+0"
+        else:
+            self.input["text"] += ".e+0"
+        self.expMode = True
+
+SciCalculator()
